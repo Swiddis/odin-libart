@@ -12,6 +12,7 @@ main :: proc() {
 	for key, i in keys {
 		libart.art_insert(&t, raw_data(key), i32(len(key)), &values[i])
 	}
+	assert(t.size == 6)
 
 	present_key := "bank"
 	assert((cast(^int)libart.art_search(&t, raw_data(present_key), 4))^ == 43)

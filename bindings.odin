@@ -1,5 +1,6 @@
 package libart
 
+import "core:c"
 foreign import lib "libart/src/libart.so"
 
 NODE4          :: 1
@@ -8,7 +9,7 @@ NODE48         :: 3
 NODE256        :: 4
 MAX_PREFIX_LEN :: 10
 
-art_callback :: proc "c" (data: rawptr, key: ^u8, key_len: u32, value: rawptr) -> i32
+art_callback :: proc "c" (data: rawptr, key: ^u8, key_len: u32, value: rawptr) -> c.int
 
 // This struct is included as part of all the various node sizes
 art_node :: struct {
@@ -49,7 +50,7 @@ art_node256 :: struct {
 art_leaf :: struct {
 	value:   rawptr,
 	key_len: u32,
-	key:     [^]u8,
+	key:     [0]u8,
 }
 
 // Main struct, points to root
@@ -66,7 +67,7 @@ foreign lib {
 	Returns:
 	- 0 on success.
 	*/
-	art_tree_init :: proc(t: ^art_tree) -> i32 ---
+	art_tree_init :: proc(t: ^art_tree) -> c.int ---
 
 	/*
 	Destroys an ART tree
@@ -74,7 +75,7 @@ foreign lib {
 	Returns:
 	- 0 on success.
 	*/
-	art_tree_destroy :: proc(t: ^art_tree) -> i32 ---
+	art_tree_destroy :: proc(t: ^art_tree) -> c.int ---
 
 	/*
 	Inserts a new value into the art tree
@@ -88,7 +89,7 @@ foreign lib {
 	Returns:
 	- nil if the item was newly inserted, otherwise the old value pointer is returned
 	*/
-	art_insert :: proc(t: ^art_tree, key: ^u8, key_len: i32, value: rawptr) -> rawptr ---
+	art_insert :: proc(t: ^art_tree, key: ^u8, key_len: c.int, value: rawptr) -> rawptr ---
 
 	/*
 	Inserts a new value into the art tree (not replacing)
@@ -102,7 +103,7 @@ foreign lib {
 	Returns:
 	- nil if the item was newly inserted, otherwise the old value pointer is returned
 	*/
-	art_insert_no_replace :: proc(t: ^art_tree, key: ^u8, key_len: i32, value: rawptr) -> rawptr ---
+	art_insert_no_replace :: proc(t: ^art_tree, key: ^u8, key_len: c.int, value: rawptr) -> rawptr ---
 
 	/*
 	Deletes a value from the ART tree
@@ -115,7 +116,7 @@ foreign lib {
 	Returns:
 	- nil if the item was not found, otherwise the value pointer is returned
 	*/
-	art_delete :: proc(t: ^art_tree, key: ^u8, key_len: i32) -> rawptr ---
+	art_delete :: proc(t: ^art_tree, key: ^u8, key_len: c.int) -> rawptr ---
 
 	/*
 	Searches for a value in the ART tree
@@ -128,7 +129,7 @@ foreign lib {
 	Returns:
 	- nil if the item was not found, otherwise the value pointer is returned
 	*/
-	art_search :: proc(t: ^art_tree, key: ^u8, key_len: i32) -> rawptr ---
+	art_search :: proc(t: ^art_tree, key: ^u8, key_len: c.int) -> rawptr ---
 
 	/*
 	Returns the minimum valued leaf
@@ -160,7 +161,7 @@ foreign lib {
 	Returns:
 	- 0 on success, or the return of the callback.
 	*/
-	art_iter :: proc(t: ^art_tree, cb: art_callback, data: rawptr) -> i32 ---
+	art_iter :: proc(t: ^art_tree, cb: art_callback, data: rawptr) -> c.int ---
 
 	/*
 	Iterates through the entries pairs in the map, invoking a callback for each that matches a given prefix.
@@ -178,5 +179,5 @@ foreign lib {
 	Returns:
 	- 0 on success, or the return of the callback
 	*/
-	art_iter_prefix :: proc(t: ^art_tree, prefix: ^u8, prefix_len: i32, cb: art_callback, data: rawptr) -> i32 ---
+	art_iter_prefix :: proc(t: ^art_tree, prefix: ^u8, prefix_len: c.int, cb: art_callback, data: rawptr) -> c.int ---
 }
