@@ -36,6 +36,7 @@ main :: proc() {
 
 	threshold := 80
 	prefix_ba := "ba"
+
 	callback := proc "c" (data: rawptr, key: ^u8, key_len: u32, value: rawptr) -> i32 {
 		x := cast(^int)value
 		if x^ > (cast(^int)data)^ {
@@ -43,6 +44,7 @@ main :: proc() {
 		}
 		return 0
 	}
+
 	result := libart.art_iter(&t, callback, &threshold)
 	assert(result == 95)
 	result = libart.art_iter_prefix(&t, raw_data(prefix_ba), 2, callback, &threshold)

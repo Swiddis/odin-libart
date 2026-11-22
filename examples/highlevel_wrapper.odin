@@ -33,4 +33,24 @@ main :: proc() {
 	assert(minv^ == 39 && mink == "baby")
 	maxk, maxv, _ := libart.maximum(&t)
 	assert(maxv^ == 95 && maxk == "dance")
+
+	ThresholdKey :: struct {
+		threshold: int,
+		matching_value: int,
+	}
+	data := ThresholdKey { 80, 0 }
+	prefix_ba := "ba"
+
+	callback := proc (key: string, value: ^int, tk: ^ThresholdKey) -> (stop: bool) {
+		if value^ > tk.threshold {
+			tk.matching_value = value^
+			stop = true
+		}
+		return
+	}
+
+	found := libart.for_each(&t, callback, &data)
+	assert(found && data.matching_value == 95)
+	found = libart.for_each_prefix(&t, prefix_ba, callback, &data)
+	assert(!found)
 }

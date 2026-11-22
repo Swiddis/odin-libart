@@ -34,7 +34,7 @@ example :: proc() {
 ```
 
 Notes:
-- High-level bindings currently do not support iteration, as the callback interface is Weird.
+- As libart doesn't support a pull-based iteration interface, the wrapper only provides callback-based `for_each`.
 - It currently only suppports pointers as values, so you usually will want to pair the trie with some sort of auxiliary storage structure like an array. I may try to make an owned variant later that stores values directly.
 
 ## License

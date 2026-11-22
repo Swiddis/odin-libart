@@ -50,6 +50,8 @@ art_node256 :: struct {
 art_leaf :: struct {
 	value:   rawptr,
 	key_len: u32,
+	// libart inlines a flexibly sized key via `malloc(sizeof(art_leaf) + key_len)`,
+	// so we want to sneak in a fake array instead of the typical `[^]u8` repr.
 	key:     [0]u8,
 }
 

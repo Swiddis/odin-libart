@@ -1,6 +1,7 @@
 package libart
 
 import "base:builtin"
+import "base:runtime"
 import "core:c"
 
 Tree :: struct($V: typeid) {
@@ -71,4 +72,43 @@ maximum :: proc(t: ^Tree($V)) -> (key: string, value: ^V, ok: bool) {
 	leaf := art_maximum(&t.raw)
 	if leaf == nil { return }
 	return string(([^]u8)(&leaf.key)[:leaf.key_len]), cast(^V)leaf.value, true
+}
+
+ForEachState :: struct($V: typeid, $U: typeid) {
+	ctx:     runtime.Context,
+	callback: proc(key: string, value: ^V, data: ^U) -> bool,
+	data:    ^U,
+}
+
+for_each :: proc(
+	t: ^Tree($V),
+	callback: proc(key: string, value: ^V, data: ^$U) -> (stop: bool),
+	data: ^U = nil,
+) -> (stopped: bool) {
+	state := ForEachState(V, U){context, callback, data}
+
+	callback_inner :: proc "c" (data: rawptr, key: ^u8, key_len: u32, value: rawptr) -> i32 {
+		s := cast(^ForEachState(V, U))data
+		context = s.ctx
+		k := string(([^]u8)(key)[:key_len]) // only valid during the callback
+		return 1 if s.callback(k, cast(^V)value, s.data) else 0
+	}
+	return art_iter(&t.raw, callback_inner, &state) != 0
+}
+
+for_each_prefix :: proc(
+	t: ^Tree($V),
+	prefix: string,
+	callback: proc(key: string, value: ^V, data: ^$U) -> (stop: bool),
+	data: ^U = nil,
+) -> (stopped: bool) {
+	state := ForEachState(V, U){context, callback, data}
+
+	callback_inner :: proc "c" (data: rawptr, key: ^u8, key_len: u32, value: rawptr) -> i32 {
+		s := cast(^ForEachState(V, U))data
+		context = s.ctx
+		k := string(([^]u8)(key)[:key_len]) // only valid during the callback
+		return 1 if s.callback(k, cast(^V)value, s.data) else 0
+	}
+	return art_iter_prefix(&t.raw, raw_data(prefix), klen(builtin.len(prefix)), callback_inner, &state) != 0
 }
