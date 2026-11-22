@@ -2,6 +2,10 @@
 
 Odin bindings for Armon Dadgar's [libart](https://github.com/armon/libart).
 
+libart provides an optimized Adaptive Radix Trie data structure.
+
+Low-level bindings courtesy of [odin-c-bindgen](https://github.com/karl-zylinski/odin-c-bindgen), with minor tweaks.
+
 ## Setup
 
 Clone the submodule and build the library with the provided Makefile.
@@ -29,12 +33,12 @@ example :: proc() {
 		libart.insert(&t, key, &values[i])
 	}
 	assert(libart.len(t) == 6)
-	assert(libart.search(&t, present_key)^ == 43)
+	assert(libart.search(&t, search_key)^ == 43)
 }
 ```
 
 Notes:
-- As libart doesn't support a pull-based iteration interface, the wrapper only provides callback-based `for_each`.
+- As libart doesn't support a pull-based iteration interface a la `for in`, the wrapper only provides a callback-based `for_each`.
 - It currently only suppports pointers as values, so you usually will want to pair the trie with some sort of auxiliary storage structure like an array. I may try to make an owned variant later that stores values directly.
 
 ## License

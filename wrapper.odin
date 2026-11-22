@@ -75,9 +75,9 @@ maximum :: proc(t: ^Tree($V)) -> (key: string, value: ^V, ok: bool) {
 }
 
 ForEachState :: struct($V: typeid, $U: typeid) {
-	ctx:     runtime.Context,
+	ctx: runtime.Context,
 	callback: proc(key: string, value: ^V, data: ^U) -> bool,
-	data:    ^U,
+	data: ^U,
 }
 
 for_each :: proc(
