@@ -39,7 +39,15 @@ example :: proc() {
 
 Notes:
 - As libart doesn't support a pull-based iteration interface a la `for in`, the wrapper only provides a callback-based `for_each`.
-- It currently only suppports pointers as values, so you usually will want to pair the trie with some sort of auxiliary storage structure like an array. I may try to make an owned variant later that stores values directly.
+- It currently only suppports pointers as values, so you generally will need to allocate values with `new`. Here's the freeing loop I use in my test client:
+
+```odin
+libart.for_each(&trie, proc(key: string, value: ^i64) -> bool {
+	free(value)
+	return false
+})
+libart.destroy(&trie)
+```
 
 ## License
 
