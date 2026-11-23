@@ -79,11 +79,15 @@ ForEachState :: struct($V: typeid, $U: typeid) {
 	callback: proc(key: string, value: ^V, data: ^U) -> bool,
 	data: ^U,
 }
+ForEachStateNoData :: struct($V: typeid) {
+	ctx: runtime.Context,
+	callback: proc(key: string, value: ^V) -> bool,
+}
 
-for_each :: proc(
+for_each_with_data :: proc(
 	t: ^Tree($V),
 	callback: proc(key: string, value: ^V, data: ^$U) -> (stop: bool),
-	data: ^U = nil,
+	data: ^U,
 ) -> (stopped: bool) {
 	state := ForEachState(V, U){context, callback, data}
 
@@ -95,12 +99,27 @@ for_each :: proc(
 	}
 	return art_iter(&t.raw, callback_inner, &state) != 0
 }
+for_each_no_data :: proc(
+	t: ^Tree($V),
+	callback: proc(key: string, value: ^V) -> (stop: bool),
+) -> (stopped: bool) {
+	state := ForEachStateNoData(V){context, callback}
 
-for_each_prefix :: proc(
+	callback_inner :: proc "c" (data: rawptr, key: ^u8, key_len: u32, value: rawptr) -> i32 {
+		s := cast(^ForEachStateNoData(V))data
+		context = s.ctx
+		k := string(([^]u8)(key)[:key_len]) // only valid during the callback
+		return 1 if s.callback(k, cast(^V)value) else 0
+	}
+	return art_iter(&t.raw, callback_inner, &state) != 0
+}
+for_each :: proc{for_each_with_data, for_each_no_data}
+
+for_each_prefix_with_data :: proc(
 	t: ^Tree($V),
 	prefix: string,
 	callback: proc(key: string, value: ^V, data: ^$U) -> (stop: bool),
-	data: ^U = nil,
+	data: ^U,
 ) -> (stopped: bool) {
 	state := ForEachState(V, U){context, callback, data}
 
@@ -112,3 +131,18 @@ for_each_prefix :: proc(
 	}
 	return art_iter_prefix(&t.raw, raw_data(prefix), klen(builtin.len(prefix)), callback_inner, &state) != 0
 }
+for_each_prefix_no_data :: proc(
+	t: ^Tree($V),
+	callback: proc(key: string, value: ^V) -> (stop: bool),
+) -> (stopped: bool) {
+	state := ForEachStateNoData(V){context, callback}
+
+	callback_inner :: proc "c" (data: rawptr, key: ^u8, key_len: u32, value: rawptr) -> i32 {
+		s := cast(^ForEachStateNoData(V))data
+		context = s.ctx
+		k := string(([^]u8)(key)[:key_len]) // only valid during the callback
+		return 1 if s.callback(k, cast(^V)value) else 0
+	}
+	return art_iter_prefix(&t.raw, raw_data(prefix), klen(builtin.len(prefix)), callback_inner, &state) != 0
+}
+for_each_prefix :: proc{for_each_prefix_with_data, for_each_prefix_no_data}
