@@ -1,12 +1,12 @@
 package client
 
-import "core:mem"
 import "core:strconv"
 import "core:encoding/hex"
 import "core:fmt"
 import "core:bufio"
 import "core:os"
 import "core:strings"
+import "core:c/libc"
 
 import libart ".."
 
@@ -17,12 +17,21 @@ lines :: proc(reader: ^bufio.Reader, allocator := context.allocator) -> (string,
 	return s, err == nil
 }
 
+// Keys live in exactly-sized libc allocations so that, under ASan, any read
+// past key_len hits a redzone (Odin's heap allocator pads for alignment).
 decode_bytes :: proc(input: string) -> (output: []u8, ok: bool) {
-	if input == "$EMPTY" {
-		return EMPTY, true
+	src := EMPTY
+	if input != "$EMPTY" {
+		src = hex.decode(transmute([]u8)input) or_return
 	}
-	output, ok = hex.decode(transmute([]u8)input)
-	return
+	defer if input != "$EMPTY" { delete(src) }
+	buf := ([^]u8)(libc.malloc(uint(len(src))))
+	copy(buf[:len(src)], src)
+	return buf[:len(src)], true
+}
+
+free_key :: proc(key: []u8) {
+	libc.free(raw_data(key))
 }
 
 handle_insert :: proc(cmd: ^[]string, trie: ^libart.Tree(i64)) -> (err: bool) {
@@ -31,13 +40,14 @@ handle_insert :: proc(cmd: ^[]string, trie: ^libart.Tree(i64)) -> (err: bool) {
 	}
 
 	key := decode_bytes(cmd[0]) or_return
-	defer delete(key)
+	defer free_key(key)
 	value := strconv.parse_i64(cmd[1]) or_return
 	value_ptr, _ := new(i64)
 	value_ptr^ = value
 
-	libart.insert(trie, key, value_ptr)
-	// fmt.eprintfln("inserted bytes(0x%s) as %d", cmd[0], value)
+	if old := libart.insert(trie, key, value_ptr); old != nil {
+		free(old)
+	}
 
 	return false
 }
@@ -48,13 +58,13 @@ handle_delete :: proc(cmd: ^[]string, trie: ^libart.Tree(i64)) -> (err: bool) {
 	}
 
 	key := decode_bytes(cmd[0]) or_return
-	defer delete(key)
+	defer free_key(key)
 
-	_, found := libart.delete(trie, key)
+	old, found := libart.delete(trie, key)
 	if !found {
 		return true
 	}
-	// fmt.eprintfln("deleted bytes(0x%s)", cmd[0])
+	free(old)
 
 	return false
 }
@@ -65,14 +75,12 @@ handle_search :: proc(cmd: ^[]string, trie: ^libart.Tree(i64)) -> (err: bool) {
 	}
 
 	key := decode_bytes(cmd[0]) or_return
-	defer delete(key)
+	defer free_key(key)
 
 	value, found := libart.search(trie, key)
 	if !found {
-		// fmt.eprintfln("search bytes(0x%s) == nil", cmd[0])
 		fmt.printfln("not found")
 	} else {
-		// fmt.eprintfln("search bytes(0x%s) == %d", cmd[0], value^)
 		fmt.printfln("value=%d", value^)
 	}
 
@@ -94,7 +102,6 @@ handle_command :: proc(cmd: ^[]string, trie: ^libart.Tree(i64)) {
 		handle_search(&tail, trie)
 	case "length":
 		fmt.printfln("%d", libart.len(trie^))
-		// fmt.eprintfln("length is %d", libart.len(trie^))
 	case:
 		fmt.eprintfln("unrecognized command: %s", cmd[0])
 	}

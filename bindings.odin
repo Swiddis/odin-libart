@@ -1,7 +1,9 @@
 package libart
 
 import "core:c"
-foreign import lib "libart/src/libart.so"
+
+LIBART_LIB :: #config(LIBART_LIB, "libart/src/libart.so")
+foreign import lib { LIBART_LIB }
 
 NODE4          :: 1
 NODE16         :: 2
