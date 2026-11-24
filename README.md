@@ -39,6 +39,7 @@ example :: proc() {
 
 Notes:
 - As libart doesn't support a pull-based iteration interface a la `for in`, the wrapper only provides a callback-based `for_each`.
+- Libart generally struggles when keys are prefixes of each other -- for best results, your keys should have a consistent terminator, or otherwise be the same length.
 - It currently only suppports pointers as values, so you generally will need to allocate values with `new`. Here's the freeing loop I use in my test client:
 
 ```odin
